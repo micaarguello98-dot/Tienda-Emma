@@ -64,8 +64,9 @@ export default function AdminProductsPage() {
   const [description, setDescription] = useState("");
   const [isFeatured, setIsFeatured] = useState(false);
 
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [existingImages, setExistingImages] = useState<{ url: string; is_primary: boolean }[]>([]);
 
   const [newCatName, setNewCatName] = useState("");
   const [newCatSlug, setNewCatSlug] = useState("");
@@ -119,16 +120,32 @@ export default function AdminProductsPage() {
     setCategoryId("");
     setDescription("");
     setIsFeatured(false);
-    setSelectedFile(null);
-    setPreviewUrl(null);
+    setSelectedFiles([]);
+    setPreviewUrls([]);
+    setExistingImages([]);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
+    const files = e.target.files;
+    if (files) {
+      const newFiles = Array.from(files);
+      setSelectedFiles(prev => [...prev, ...newFiles]);
+      
+      const newPreviews = newFiles.map(file => URL.createObjectURL(file));
+      setPreviewUrls(prev => [...prev, ...newPreviews]);
     }
+    e.target.value = '';
+  };
+
+  const removeSelectedFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    // Revocamos el objeto para liberar memoria
+    URL.revokeObjectURL(previewUrls[index]);
+    setPreviewUrls(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeExistingImage = (index: number) => {
+    setExistingImages(prev => prev.filter((_, i) => i !== index));
   };
 
   const startEdit = (p: ProductRow) => {
@@ -139,12 +156,9 @@ export default function AdminProductsPage() {
     setCategoryId(p.category_id);
     setDescription(p.description || "");
     setIsFeatured(Boolean(p.is_featured));
-    setSelectedFile(null);
-    const thumb =
-      p.product_images?.find((img) => img.is_primary)?.url ||
-      p.product_images?.[0]?.url ||
-      null;
-    setPreviewUrl(thumb);
+    setSelectedFiles([]);
+    setPreviewUrls([]);
+    setExistingImages(p.product_images || []);
   };
 
   const uploadImage = async (file: File) => {
@@ -163,13 +177,15 @@ export default function AdminProductsPage() {
       alert("Completa nombre, precio y categoría.");
       return;
     }
-    if (!editingId && !selectedFile) {
-      alert("Selecciona una imagen para el producto nuevo.");
+    if (!editingId && selectedFiles.length === 0) {
+      alert("Selecciona al menos una imagen para el producto nuevo.");
       return;
     }
 
     setLoading(true);
     try {
+      let productId = editingId;
+
       if (editingId) {
         const { error: uErr } = await supabase
           .from("products")
@@ -184,35 +200,9 @@ export default function AdminProductsPage() {
           .eq("id", editingId);
         if (uErr) throw uErr;
 
-        if (selectedFile) {
-          const publicUrl = await uploadImage(selectedFile);
-          const { data: existing } = await supabase
-            .from("product_images")
-            .select("id")
-            .eq("product_id", editingId)
-            .eq("is_primary", true)
-            .maybeSingle();
-
-          if (existing?.id) {
-            const { error: imgErr } = await supabase
-              .from("product_images")
-              .update({ url: publicUrl })
-              .eq("id", existing.id);
-            if (imgErr) throw imgErr;
-          } else {
-            const { error: imgErr } = await supabase.from("product_images").insert({
-              product_id: editingId,
-              url: publicUrl,
-              is_primary: true,
-            });
-            if (imgErr) throw imgErr;
-          }
-        }
-
-        alert("Producto actualizado.");
+        // Limpiar imagenes viejas y poner las que quedaron + las nuevas
+        await supabase.from("product_images").delete().eq("product_id", editingId);
       } else {
-        const publicUrl = await uploadImage(selectedFile!);
-
         const { data: product, error: pError } = await supabase
           .from("products")
           .insert([
@@ -229,19 +219,32 @@ export default function AdminProductsPage() {
           .single();
 
         if (pError) throw pError;
-
-        const { error: iError } = await supabase.from("product_images").insert([
-          {
-            product_id: product.id,
-            url: publicUrl,
-            is_primary: true,
-          },
-        ]);
-
-        if (iError) throw iError;
-        alert("Producto publicado.");
+        productId = product.id;
       }
 
+      // Re-insertar imagenes existentes que NO fueron borradas
+      if (existingImages.length > 0) {
+        const toInsert = existingImages.map((img, idx) => ({
+          product_id: productId,
+          url: img.url,
+          is_primary: idx === 0,
+        }));
+        await supabase.from("product_images").insert(toInsert);
+      }
+
+      // Subir y insertar imagenes nuevas
+      if (selectedFiles.length > 0) {
+        for (let i = 0; i < selectedFiles.length; i++) {
+          const publicUrl = await uploadImage(selectedFiles[i]);
+          await supabase.from("product_images").insert({
+            product_id: productId,
+            url: publicUrl,
+            is_primary: existingImages.length === 0 && i === 0,
+          });
+        }
+      }
+
+      alert(editingId ? "Producto actualizado." : "Producto publicado.");
       resetForm();
       await loadProducts();
     } catch (error: unknown) {
@@ -469,41 +472,61 @@ export default function AdminProductsPage() {
         </div>
 
         <div
-          className="bg-white rounded-[2.5rem] border-2 border-dashed border-blue-200 p-8 flex flex-col items-center justify-center gap-4 shadow-sm hover:bg-blue-50/30 transition-all cursor-pointer"
-          onClick={() => fileInputRef.current?.click()}
+          className="bg-white rounded-[2.5rem] border-2 border-dashed border-blue-200 p-8 space-y-6 shadow-sm hover:bg-blue-50/10 transition-all"
         >
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            accept="image/*"
-            className="hidden"
-          />
-
-          {previewUrl ? (
-            <div className="relative w-40 h-40 group">
-              <Image src={previewUrl} alt="Preview" fill className="object-contain rounded-2xl" />
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setPreviewUrl(null);
-                  setSelectedFile(null);
-                }}
-                className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full shadow-lg"
-              >
-                <X className="w-4 h-4" />
-              </button>
+          <div className="flex flex-col items-center justify-center gap-4 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="image/*"
+              multiple
+              className="hidden"
+            />
+            <div className="w-16 h-16 bg-blue-50 text-btn-blue rounded-full flex items-center justify-center shadow-inner">
+              <Upload className="w-8 h-8" />
             </div>
-          ) : (
-            <>
-              <div className="w-16 h-16 bg-blue-50 text-btn-blue rounded-full flex items-center justify-center shadow-inner">
-                <Upload className="w-8 h-8" />
-              </div>
-              <p className="text-sm font-bold text-gray-700 text-center">
-                {editingId ? "Toca para cambiar la imagen (opcional)" : "Haz clic para la imagen del producto"}
-              </p>
-            </>
+            <p className="text-sm font-bold text-gray-700 text-center">
+              {editingId ? "Toca para añadir más imágenes" : "Haz clic para subir fotos del producto"}
+            </p>
+          </div>
+
+          {(existingImages.length > 0 || selectedFiles.length > 0) && (
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+              {/* Existing Images */}
+              {existingImages.map((img, idx) => (
+                <div key={`existing-${idx}`} className="relative aspect-square rounded-xl overflow-hidden bg-gray-100 border border-gray-200 group">
+                  <img src={img.url} alt="" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => removeExistingImage(idx)}
+                    className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                  {idx === 0 && <span className="absolute bottom-0 left-0 right-0 bg-btn-blue/80 text-[8px] text-white font-black text-center py-0.5 uppercase tracking-tighter">Principal</span>}
+                </div>
+              ))}
+              
+              {/* New Selected Files */}
+              {previewUrls.map((url, idx) => (
+                <div key={`new-${idx}`} className="relative aspect-square rounded-xl overflow-hidden bg-blue-50 border border-blue-200 group">
+                  <img 
+                    src={url} 
+                    alt="" 
+                    className="w-full h-full object-cover" 
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeSelectedFile(idx)}
+                    className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                  {existingImages.length === 0 && idx === 0 && <span className="absolute bottom-0 left-0 right-0 bg-btn-blue/80 text-[8px] text-white font-black text-center py-0.5 uppercase tracking-tighter">Principal</span>}
+                </div>
+              ))}
+            </div>
           )}
         </div>
 
