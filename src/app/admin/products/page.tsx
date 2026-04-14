@@ -158,7 +158,14 @@ export default function AdminProductsPage() {
     setIsFeatured(Boolean(p.is_featured));
     setSelectedFiles([]);
     setPreviewUrls([]);
-    setExistingImages(p.product_images || []);
+    
+    // Mapeamos para asegurar que is_primary no sea null (TypeScript error fix)
+    const images = (p.product_images || []).map(img => ({
+      url: img.url,
+      is_primary: !!img.is_primary
+    }));
+    
+    setExistingImages(images);
   };
 
   const uploadImage = async (file: File) => {
