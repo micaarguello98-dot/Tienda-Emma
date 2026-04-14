@@ -56,19 +56,24 @@ export const ProductGrid = ({ activeCategory, sortBy }: ProductGridProps) => {
 
         if (error) throw error;
 
-        // Map database response to Product type
-        const mappedProducts: Product[] = (data || []).map((p: any) => ({
-          id: p.id,
-          name: p.name,
-          description: p.description || '',
-          price: Number(p.price),
-          image: p.product_images?.find((img: any) => img.is_primary)?.url || 
-                 p.product_images?.[0]?.url || 
-                 '/logo.png', // Fallback to logo if no image
-          category: p.categories?.slug || 'accesorios',
-          stock: p.stock || 0,
-          is_featured: Boolean(p.is_featured),
-        }));
+        const mappedProducts: Product[] = (data || []).map((p: any) => {
+          const allImages = (p.product_images || [])
+            .sort((a: any, b: any) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0))
+            .map((img: any) => img.url)
+            .filter(Boolean);
+
+          return {
+            id: p.id,
+            name: p.name,
+            description: p.description || '',
+            price: Number(p.price),
+            image: allImages[0] || '/logo.png',
+            images: allImages.length > 0 ? allImages : undefined,
+            category: p.categories?.slug || 'accesorios',
+            stock: p.stock || 0,
+            is_featured: Boolean(p.is_featured),
+          };
+        });
 
         // Sorting
         if (sortBy === "price_asc") {

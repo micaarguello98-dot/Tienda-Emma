@@ -2,10 +2,10 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
-import { X, ShoppingCart, Heart, Star, Truck, Info } from "lucide-react";
+import { X, ShoppingCart, Heart, Star, Truck, Info, ChevronLeft, ChevronRight as ChevronRightIcon } from "lucide-react";
 import { Product } from "@/types/product";
 import { useCart } from "@/context/CartContext";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { categoryLabelFromSlug } from "@/lib/categoryLabels";
 import { ProductImageMagnifier } from "./ProductImageMagnifier";
@@ -20,9 +20,11 @@ const MODAL_Z = "z-[500]";
 
 export const ProductModal = ({ product, onClose }: ProductModalProps) => {
   const { addToCart } = useCart();
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
     if (!product) return;
+    setCurrentImageIndex(0);
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
@@ -38,9 +40,20 @@ export const ProductModal = ({ product, onClose }: ProductModalProps) => {
   if (!product) return null;
   if (typeof document === "undefined") return null;
 
-  const imageSrc = product.image;
+  const allImages = product.images && product.images.length > 0 ? product.images : [product.image];
+  const currentImage = allImages[currentImageIndex] || product.image;
+  const hasMultipleImages = allImages.length > 1;
   const inStock = (product.stock ?? 0) > 0;
   const categoryLabel = categoryLabelFromSlug(product.category);
+
+  const goToPrev = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev === 0 ? allImages.length - 1 : prev - 1));
+  };
+  const goToNext = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev === allImages.length - 1 ? 0 : prev + 1));
+  };
 
   return createPortal(
     <AnimatePresence>
@@ -57,7 +70,7 @@ export const ProductModal = ({ product, onClose }: ProductModalProps) => {
             className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm"
           />
 
-          {/* Modal: hoja abajo en móvil, centrado en desktop */}
+          {/* Modal */}
           <motion.div
             initial={{ opacity: 0, y: 28, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -69,7 +82,7 @@ export const ProductModal = ({ product, onClose }: ProductModalProps) => {
               "pb-[max(0.75rem,env(safe-area-inset-bottom))] md:pb-0"
             )}
           >
-            {/* Franja tipo “sheet” */}
+            {/* Sheet grab */}
             <div className="w-10 h-1 bg-gray-200/90 rounded-full mx-auto mt-3 mb-1 md:hidden shrink-0" />
 
             <button
@@ -81,11 +94,67 @@ export const ProductModal = ({ product, onClose }: ProductModalProps) => {
               <X className="w-5 h-5" />
             </button>
 
-            {/* Imagen + lupa (desktop: dos columnas imagen + zoom) */}
+            {/* Image Carousel */}
             <div className="w-full md:w-[52%] lg:w-[50%] h-[min(42vh,300px)] md:h-auto md:min-h-[min(420px,70vh)] bg-gradient-to-b from-white to-gray-50/80 md:bg-gradient-to-br md:from-white md:to-gray-50/40 relative flex flex-col shrink-0 border-b md:border-b-0 md:border-r border-gray-100/90">
               <div className="relative flex-1 min-h-0 w-full px-3 pt-2 pb-2 md:p-5 md:pb-5 lg:p-8">
-                <ProductImageMagnifier src={imageSrc} alt={product.name} className="h-full min-h-[140px] md:min-h-[300px]" />
+                <ProductImageMagnifier src={currentImage} alt={product.name} className="h-full min-h-[140px] md:min-h-[300px]" />
+
+                {/* Navigation Arrows */}
+                {hasMultipleImages && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={goToPrev}
+                      className="absolute left-2 md:left-3 top-1/2 -translate-y-1/2 z-30 w-9 h-9 md:w-10 md:h-10 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center text-gray-600 hover:bg-white hover:scale-110 transition-all active:scale-95 border border-gray-100/50"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={goToNext}
+                      className="absolute right-2 md:right-3 top-1/2 -translate-y-1/2 z-30 w-9 h-9 md:w-10 md:h-10 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center text-gray-600 hover:bg-white hover:scale-110 transition-all active:scale-95 border border-gray-100/50"
+                    >
+                      <ChevronRightIcon className="w-5 h-5" />
+                    </button>
+                  </>
+                )}
+
+                {/* Dot Indicators */}
+                {hasMultipleImages && (
+                  <div className="absolute bottom-3 md:bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm">
+                    {allImages.map((_, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(idx); }}
+                        className={cn(
+                          "w-2 h-2 rounded-full transition-all",
+                          idx === currentImageIndex ? "bg-btn-blue w-5" : "bg-gray-300 hover:bg-gray-400"
+                        )}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
+
+              {/* Thumbnails strip */}
+              {hasMultipleImages && (
+                <div className="hidden md:flex gap-2 px-5 pb-4 overflow-x-auto no-scrollbar">
+                  {allImages.map((img, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setCurrentImageIndex(idx)}
+                      className={cn(
+                        "w-14 h-14 rounded-xl overflow-hidden border-2 shrink-0 transition-all hover:scale-105",
+                        idx === currentImageIndex ? "border-btn-blue shadow-md" : "border-gray-100 opacity-60 hover:opacity-100"
+                      )}
+                    >
+                      <img src={img} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {/* Status Badges */}
               <div className="absolute top-2 left-4 md:top-8 md:left-8 z-20 flex flex-col gap-1.5 pointer-events-none max-w-[55%]">
@@ -98,6 +167,7 @@ export const ProductModal = ({ product, onClose }: ProductModalProps) => {
                  </span>
               </div>
             </div>
+
 
             {/* Detalles + scroll interno */}
             <div className="w-full md:w-[48%] lg:w-[50%] flex flex-col min-h-0 flex-1 bg-gradient-to-b from-[#f0f7ff] to-white md:from-[#fafcff] md:to-white relative border-t md:border-t-0 border-gray-100/80">

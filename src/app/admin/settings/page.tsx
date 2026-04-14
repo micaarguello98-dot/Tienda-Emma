@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { Settings, Save, Loader2, Info, Phone, Truck } from "lucide-react";
+import { Settings, Save, Loader2, Info, Phone, Truck, Megaphone } from "lucide-react";
 
 export default function AdminSettingsPage() {
   const supabase = createClient();
@@ -18,6 +18,10 @@ export default function AdminSettingsPage() {
     shipping_percent: "",
     shipping_info: "",
     shipping_delivery_hint: "",
+    promo_banner_enabled: "",
+    promo_banner_text: "",
+    promo_banner_link: "",
+    promo_banner_color: "from-pink-500 to-rose-500",
   });
 
   useEffect(() => {
@@ -85,6 +89,77 @@ export default function AdminSettingsPage() {
               Aquí puedes cambiar los textos principales de la tienda sin entrar al código. 
               Estos cambios se reflejarán inmediatamente en la página principal para todos los usuarios.
             </p>
+         </div>
+
+         {/* Banner Promocional */}
+         <div className="rounded-[1.75rem] border-2 border-pink-100 bg-gradient-to-br from-pink-50/80 to-white p-6 space-y-5">
+           <div className="flex items-center gap-3">
+             <div className="w-10 h-10 rounded-xl bg-pink-500 text-white flex items-center justify-center shadow-md shadow-pink-100">
+               <Megaphone className="w-5 h-5 stroke-[2.5px]" />
+             </div>
+             <div>
+               <h2 className="text-sm font-black text-gray-900 tracking-tight">Banner Promocional</h2>
+               <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">
+                 Se muestra arriba de la tienda
+               </p>
+             </div>
+           </div>
+
+           <label className="flex items-center gap-3 cursor-pointer">
+             <input
+               type="checkbox"
+               checked={config.promo_banner_enabled === "true" || config.promo_banner_enabled === "1"}
+               onChange={(e) =>
+                 setConfig({ ...config, promo_banner_enabled: e.target.checked ? "true" : "false" })
+               }
+               className="h-5 w-5 rounded border-gray-300 text-pink-500 focus:ring-pink-500"
+             />
+             <span className="text-sm font-bold text-gray-800">Activar banner</span>
+           </label>
+
+           <div className="space-y-2">
+             <label className="text-[10px] uppercase font-black text-gray-400 tracking-widest px-1">
+               Texto del banner
+             </label>
+             <input
+               type="text"
+               value={config.promo_banner_text ?? ""}
+               onChange={(e) => setConfig({ ...config, promo_banner_text: e.target.value })}
+               className="w-full bg-white border-2 border-gray-100 rounded-2xl px-4 py-3 text-sm font-bold text-gray-800 focus:outline-none focus:border-pink-300"
+               placeholder="Ej. ¡Envío gratis en compras mayores a $5000!"
+             />
+           </div>
+
+           <div className="space-y-2">
+             <label className="text-[10px] uppercase font-black text-gray-400 tracking-widest px-1">
+               Link (opcional, al hacer clic)
+             </label>
+             <input
+               type="text"
+               value={config.promo_banner_link ?? ""}
+               onChange={(e) => setConfig({ ...config, promo_banner_link: e.target.value })}
+               className="w-full bg-white border-2 border-gray-100 rounded-2xl px-4 py-3 text-sm font-bold text-gray-800 focus:outline-none focus:border-pink-300"
+               placeholder="Ej. /categories o https://..."
+             />
+           </div>
+
+           <div className="space-y-2">
+             <label className="text-[10px] uppercase font-black text-gray-400 tracking-widest px-1">
+               Color del degradado
+             </label>
+             <select
+               value={config.promo_banner_color ?? "from-pink-500 to-rose-500"}
+               onChange={(e) => setConfig({ ...config, promo_banner_color: e.target.value })}
+               className="w-full bg-white border-2 border-gray-100 rounded-2xl px-4 py-3 text-sm font-bold text-gray-800 focus:outline-none focus:border-pink-300 cursor-pointer"
+             >
+               <option value="from-pink-500 to-rose-500">🩷 Rosa</option>
+               <option value="from-btn-blue to-blue-600">💙 Azul</option>
+               <option value="from-green-500 to-emerald-600">💚 Verde</option>
+               <option value="from-amber-500 to-orange-500">🧡 Naranja</option>
+               <option value="from-purple-500 to-violet-600">💜 Violeta</option>
+               <option value="from-gray-800 to-gray-900">🖤 Negro</option>
+             </select>
+           </div>
          </div>
 
          <div className="space-y-6">

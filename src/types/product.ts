@@ -4,7 +4,9 @@ export interface Product {
     description: string;
     price: number;
     image: string;
-    category: 'bebes' | 'ninas' | 'ninos' | 'accesorios';
+    /** All product images (including the primary one) */
+    images?: string[];
+    category: string;
     stock: number;
     rating?: number;
     /** Mostrar en bloque "destacados" del inicio */

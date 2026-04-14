@@ -10,6 +10,7 @@ import { FilterBar } from "@/components/home/FilterBar";
 import { ProductGrid } from "@/components/home/ProductGrid";
 import { ClientsSection } from "@/components/home/ClientsSection";
 import { FeaturedProducts } from "@/components/home/FeaturedProducts";
+import { PromoBanner } from "@/components/home/PromoBanner";
 
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -27,6 +28,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-white pb-28 overflow-x-hidden">
       <Header />
+      <PromoBanner />
       
       <main className="max-w-screen-2xl mx-auto">
          <Hero activeCategory={activeCategory} onStoreClick={handleShowProducts} />
