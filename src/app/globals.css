@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+:root {
+  --background: #FFFFFF;
+  --foreground: #333333;
+  --primary-blue: #B1E4FB;
+  --secondary-pink: #FCE4EC;
+  --accent-yellow: #FFF9C4;
+  --btn-blue: #4FC3F7;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary-blue: var(--primary-blue);
+  --color-secondary-pink: var(--secondary-pink);
+  --color-accent-yellow: var(--accent-yellow);
+  --color-btn-blue: var(--btn-blue);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Outfit', sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer base {
+  html {
+    font-size: 14px;
+  }
+  @media (min-width: 768px) {
+    html {
+      font-size: 16px;
+    }
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.cloud-bg {
+  background: linear-gradient(180deg, #B1E4FB 0%, #E3F2FD 100%);
+}
+
+.glass-nav {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
