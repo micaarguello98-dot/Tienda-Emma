@@ -51,9 +51,9 @@ export default function AdminDashboard() {
         .select("*", { count: "exact", head: true });
 
       const allOrders = orders || [];
-      const completed = allOrders.filter((o) => o.status === "completado");
-      const pending = allOrders.filter((o) => o.status === "pendiente" || o.status === "pendiente_confirmacion");
-      const totalRevenue = completed.reduce((sum, o) => sum + Number(o.total || 0), 0);
+      const completed = allOrders.filter((o: any) => o.status === "completado");
+      const pending = allOrders.filter((o: any) => o.status === "pendiente" || o.status === "pendiente_confirmacion");
+      const totalRevenue = completed.reduce((sum, o: any) => sum + Number(o.total || 0), 0);
 
       setStats({
         totalRevenue,
