@@ -53,7 +53,7 @@ export default function AdminDashboard() {
       const allOrders = orders || [];
       const completed = allOrders.filter((o: any) => o.status === "completado");
       const pending = allOrders.filter((o: any) => o.status === "pendiente" || o.status === "pendiente_confirmacion");
-      const totalRevenue = completed.reduce((sum, o: any) => sum + Number(o.total || 0), 0);
+      const totalRevenue = completed.reduce((sum: number, o: any) => sum + Number(o.total || 0), 0);
 
       setStats({
         totalRevenue,

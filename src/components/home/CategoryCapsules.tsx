@@ -32,7 +32,7 @@ export const CategoryCapsules = ({ activeCategory, onSelectCategory }: CategoryC
       .from("categories")
       .select("id, name, range")
       .order("sort_order", { ascending: true })
-      .then(({ data }) => {
+      .then(({ data }: { data: any }) => {
         if (data) setCategories(data);
         setLoading(false);
       });
