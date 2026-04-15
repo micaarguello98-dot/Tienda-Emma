@@ -44,7 +44,7 @@ export const Header = () => {
       .from("categories")
       .select("id, name, range")
       .order("sort_order", { ascending: true })
-      .then(({ data }) => {
+      .then(({ data }: any) => {
         if (data) setNavCategories(data);
       });
 
