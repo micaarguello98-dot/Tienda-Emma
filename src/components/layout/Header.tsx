@@ -35,8 +35,8 @@ export const Header = () => {
     });
 
     // Check initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+    supabase.auth.getSession().then(({ data }: any) => {
+      setUser(data.session?.user ?? null);
     });
 
     // Fetch categories for nav menu
