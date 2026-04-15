@@ -98,7 +98,7 @@ export default function AdminProductsPage() {
         .order("id", { ascending: false });
 
       if (error) throw error;
-      setProductsList((data || []).map((row) => normalizeProductRow(row)));
+      setProductsList((data || []).map((row: any) => normalizeProductRow(row)));
     } catch (e) {
       console.error(e);
       setProductsList([]);
