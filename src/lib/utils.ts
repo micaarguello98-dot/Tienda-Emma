@@ -6,7 +6,8 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function imagePath(path: string) {
-  const basePath = process.env.NODE_ENV === "production" ? "/Tienda-Emma" : "";
+  const isGithubActions = process.env.NEXT_PUBLIC_GITHUB_ACTIONS === "true" || process.env.GITHUB_ACTIONS === "true";
+  const basePath = isGithubActions ? "/Tienda-Emma" : "";
   if (path.startsWith("/")) return `${basePath}${path}`;
   return `${basePath}/${path}`;
 }
